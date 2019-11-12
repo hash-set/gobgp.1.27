@@ -968,6 +968,7 @@ func (server *BgpServer) dropPeerAllRoutes(peer *Peer, families []bgp.RouteFamil
 	for _, family := range peer.toGlobalFamilies(families) {
 		for _, path := range rib.GetPathListByPeer(peer.fsm.peerInfo, family) {
 			p := path.Clone(true)
+			p.SetDropped(true)
 			if dsts := rib.Update(p); len(dsts) > 0 {
 				server.propagateUpdateToNeighbors(peer, p, dsts, false)
 			}
@@ -2489,7 +2490,7 @@ func (s *BgpServer) DisableNeighbor(addr, communication string) error {
 func (s *BgpServer) GetDefinedSet(typ table.DefinedType, name string) (sets *config.DefinedSets, err error) {
 	err = s.mgmtOperation(func() error {
 		sets, err = s.policy.GetDefinedSet(typ, name)
-		return nil
+		return err
 	}, false)
 	return sets, err
 }
@@ -2726,6 +2727,7 @@ type WatchEventUpdate struct {
 	PathList     []*table.Path
 	Neighbor     *config.Neighbor
 	Vrf          map[string]uint16
+	GlobalVrfs   []*table.Vrf
 }
 
 type WatchEventPeerState struct {
@@ -2784,6 +2786,7 @@ type watchOptions struct {
 	tableName      string
 	recvMessage    bool
 	sentMessage    bool
+	preProcess     func(WatchEvent) WatchEvent
 }
 
 type WatchOption func(*watchOptions)
@@ -2840,6 +2843,12 @@ func WatchMessage(isSent bool) WatchOption {
 		} else {
 			o.recvMessage = true
 		}
+	}
+}
+
+func WatchPreProcess(preProcess func(WatchEvent) WatchEvent) WatchOption {
+	return func(o *watchOptions) {
+		o.preProcess = preProcess
 	}
 }
 
@@ -2915,7 +2924,11 @@ func (w *Watcher) loop() {
 				close(w.realCh)
 				return
 			}
-			w.realCh <- ev.(WatchEvent)
+			event := ev.(WatchEvent)
+			if w.opts.preProcess != nil {
+				event = w.opts.preProcess(event)
+			}
+			w.realCh <- event
 		}
 	}
 }

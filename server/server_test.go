@@ -16,11 +16,13 @@
 package server
 
 import (
+	"fmt"
 	"net"
 	"runtime"
 	"testing"
 	"time"
 
+	"github.com/eapache/channels"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
@@ -703,4 +705,44 @@ func TestFamiliesForSoftreset(t *testing.T) {
 	families = familiesForSoftreset(peer, bgp.RouteFamily(0))
 	assert.Equal(t, len(families), 2)
 	assert.NotContains(t, families, bgp.RF_RTC_UC)
+}
+
+func TestWatchPreProcess(t *testing.T) {
+	type T struct{ x int }
+	w := &Watcher{
+		realCh: make(chan WatchEvent, 1),
+		ch:     channels.NewInfiniteChannel(),
+	}
+	WatchPreProcess(func(event WatchEvent) WatchEvent {
+		ev := event.(T)
+		ev.x = 1
+		return ev
+	})(&w.opts)
+	done := make(chan struct{})
+	go func() {
+		w.loop()
+		done <- struct{}{}
+	}()
+	w.notify(T{x: 0})
+	ev := <-w.Event()
+	assert.Equal(t, ev, T{x: 1})
+	w.ch.Close()
+	<-done
+}
+
+func TestBgpServerGetDefinedSetPropagateError(t *testing.T) {
+	mgmtCh := make(chan *mgmtOp)
+	const typ = table.DEFINED_TYPE_AS_PATH
+	s := &BgpServer{
+		mgmtCh: mgmtCh,
+		policy: &table.RoutingPolicy{},
+	}
+	go func() {
+		op := <-mgmtCh
+		s.handleMGMTOp(op)
+	}()
+	_, err := s.GetDefinedSet(typ, "")
+	close(mgmtCh)
+	assert.Error(t, err)
+	assert.Equal(t, err, fmt.Errorf("invalid defined-set type: %d", typ))
 }
