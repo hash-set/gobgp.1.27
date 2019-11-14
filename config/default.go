@@ -19,6 +19,8 @@ const (
 	DEFAULT_CONNECT_RETRY             = 30
 )
 
+var ADDPATH_ALL = true
+
 var forcedOverwrittenConfig = []string{
 	"neighbor.config.peer-as",
 	"neighbor.timers.config.minimum-advertisement-interval",
