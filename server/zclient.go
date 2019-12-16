@@ -225,7 +225,7 @@ func filterOutExternalPath(paths pathList) pathList {
 	return filteredPaths
 }
 
-func newIPRouteBody(dst pathList, selfRouteWithdraw bool) (body *zebra.IPRouteBody, isWithdraw bool) {
+func newIPRouteBody(dst pathList, selfRouteWithdraw bool, addPathBackup bool) (body *zebra.IPRouteBody, isWithdraw bool) {
 	paths := filterOutExternalPath(dst)
 	if len(paths) == 0 {
 		return nil, false
@@ -294,6 +294,9 @@ func newIPRouteBody(dst pathList, selfRouteWithdraw bool) (body *zebra.IPRouteBo
 			flags |= zebra.FLAG_REJECT
 		}
 	}
+	if addPathBackup {
+		flags |= zebra.FLAG_REJECT
+	}
 	var aux []byte
 	if path.GetAsPathLen() > 0 {
 		aspath := path.GetAsPath()
@@ -306,7 +309,7 @@ func newIPRouteBody(dst pathList, selfRouteWithdraw bool) (body *zebra.IPRouteBo
 		}
 	}
 	var pathId uint32
-	if plen == 0 {
+	if plen == 0 || config.ADDPATH_ALL {
 		pathId = path.GetNlri().PathLocalIdentifier()
 		if pathId == 0 {
 			log.Warnf("Skipping zero LocalId default route")
@@ -547,6 +550,14 @@ func NlriRD(str string) string {
 	return ""
 }
 
+func NlriIP(str string) string {
+	ipstr := NlriPrefix(str)
+	_, _, err := net.ParseCIDR(ipstr)
+	if err != nil {
+		return ""
+	}
+	return ipstr
+}
 func (z *zebraClient) addGlobalVrfsToWatchEvent(ev WatchEvent) WatchEvent {
 	switch msg := ev.(type) {
 	case WatchEventUpdate:
@@ -638,13 +649,59 @@ func (z *zebraClient) loop() {
 			switch msg := ev.(type) {
 			case *WatchEventBestPath:
 				if table.UseMultiplePaths.Enabled {
+					log.WithFields(log.Fields{
+						"Topic": "Zebra",
+					}).Debug("MultiplePathListLen %d, PathListLen %d", len(msg.MultiPathList), len(msg.PathList))
 					for _, dst := range msg.MultiPathList {
-						if body, isWithdraw := newIPRouteBody(dst, false); body != nil {
-							z.client.SendIPRoute(0, body, isWithdraw)
+						if len(dst) == 0 {
+							continue
 						}
-						if body, isWithdraw := newNexthopRegisterBody(dst, z.nhtManager); body != nil {
-							z.client.SendNexthopRegister(0, body, isWithdraw)
+						path := dst[0]
+						selfRouteWithdraw := false
+						if NlriPrefix(path.GetNlri().String()) == "0.0.0.0/0" {
+							continue
 						}
+						if path.IsLocal() {
+							fmt.Println("Make Local Path selection to withdraw event", path.GetNlri().String())
+							selfRouteWithdraw = true
+						}
+						var vrf uint16 = 0
+						fmt.Println("dst-len", len(dst), "msg.Vrf", msg.Vrf)
+						for index, p := range dst {
+							if msg.Vrf != nil && vrf == 0 {
+								if v, ok := msg.Vrf[p.GetNlri().String()]; ok {
+									vrf = v
+								}
+							}
+							pstr := NlriIP(p.GetNlri().String())
+							if pstr != "" {
+								nhop := p.GetNexthop()
+								withdraw := ""
+								if p.IsWithdraw {
+									withdraw = "withdraw"
+								}
+								if selfRouteWithdraw {
+									withdraw = "self-route withdraw"
+								}
+								fmt.Printf("vrf %d [%d] %s %s %s\n", vrf, index, pstr, nhop.String(), withdraw)
+							}
+						}
+						// Iterate each path.
+						for pos, path := range dst {
+							if body, isWithdraw := newIPRouteBody(pathList{path}, false, pos != 0); body != nil {
+								if selfRouteWithdraw {
+									isWithdraw = true
+								}
+								z.client.SendIPRoute(vrf, body, isWithdraw)
+							}
+							if body, isWithdraw := newNexthopRegisterBody(pathList{path}, z.nhtManager); body != nil {
+								if selfRouteWithdraw {
+									isWithdraw = true
+								}
+								z.client.SendNexthopRegister(vrf, body, isWithdraw)
+							}
+						}
+
 					}
 				} else {
 					for _, path := range msg.PathList {
@@ -666,7 +723,7 @@ func (z *zebraClient) loop() {
 							vrfs = append(vrfs, 0)
 						}
 						for _, i := range vrfs {
-							if body, isWithdraw := newIPRouteBody(pathList{path}, selfRouteWithdraw); body != nil {
+							if body, isWithdraw := newIPRouteBody(pathList{path}, selfRouteWithdraw, false); body != nil {
 								if selfRouteWithdraw {
 									isWithdraw = true
 								}
@@ -720,7 +777,7 @@ func (z *zebraClient) loop() {
 						vrfs = append(vrfs, 0)
 					}
 					for _, vrfId := range vrfs {
-						if body, isWithdraw := newIPRouteBody(pathList{path}, false); body != nil {
+						if body, isWithdraw := newIPRouteBody(pathList{path}, false, false); body != nil {
 							z.client.SendIPRoute(vrfId, body, isWithdraw)
 						}
 						if body, isWithdraw := newNexthopRegisterBody(pathList{path}, z.nhtManager); body != nil {
