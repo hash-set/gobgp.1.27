@@ -610,7 +610,7 @@ func (server *BgpServer) notifyBestWatcher(best []*table.Path, multipath [][]*ta
 			}
 		}
 	}
-	if len(clonedB) == 0 {
+	if config.ADDPATH_ALL && len(clonedB) == 0 {
 		for _, pp := range clonedM {
 			for _, p := range pp {
 				switch p.GetRouteFamily() {

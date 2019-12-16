@@ -649,7 +649,9 @@ func (z *zebraClient) loop() {
 			switch msg := ev.(type) {
 			case *WatchEventBestPath:
 				if table.UseMultiplePaths.Enabled {
-					// fmt.Println("MultiplePathList", len(msg.MultiPathList), "PathList", len(msg.PathList))
+					log.WithFields(log.Fields{
+						"Topic": "Zebra",
+					}).Debug("MultiplePathListLen %d, PathListLen %d", len(msg.MultiPathList), len(msg.PathList))
 					for _, dst := range msg.MultiPathList {
 						if len(dst) == 0 {
 							continue
