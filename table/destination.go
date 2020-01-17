@@ -563,11 +563,16 @@ func getMultiBestPath(id string, pathList []*Path) []*Path {
 	var best *Path
 	for _, p := range pathList {
 		if !p.IsNexthopInvalid {
-			if best == nil {
-				best = p
+			if config.ADDPATH_ALL {
 				list = append(list, p)
-			} else if best.Compare(p) == 0 {
-				list = append(list, p)
+			} else {
+				if best == nil {
+					best = p
+					list = append(list, p)
+				} else if best.Compare(p) == 0 {
+					list = append(list, p)
+				}
+
 			}
 		}
 	}
