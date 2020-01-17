@@ -610,20 +610,6 @@ func (server *BgpServer) notifyBestWatcher(best []*table.Path, multipath [][]*ta
 			}
 		}
 	}
-	if config.ADDPATH_ALL && len(clonedB) == 0 {
-		for _, pp := range clonedM {
-			for _, p := range pp {
-				switch p.GetRouteFamily() {
-				case bgp.RF_IPv4_VPN, bgp.RF_IPv6_VPN:
-					for _, vrf := range server.globalRib.Vrfs {
-						if vrf.Id != 0 && table.CanImportToVrf(vrf, p) {
-							m[p.GetNlri().String()] = uint16(vrf.Id)
-						}
-					}
-				}
-			}
-		}
-	}
 	w := &WatchEventBestPath{PathList: clonedB, MultiPathList: clonedM}
 	if len(m) > 0 {
 		w.Vrf = m
@@ -1697,9 +1683,7 @@ func (s *BgpServer) Start(c *config.Global) error {
 		// update route selection options
 		table.SelectionOptions = c.RouteSelectionOptions.Config
 		table.UseMultiplePaths = c.UseMultiplePaths.Config
-		if config.ADDPATH_ALL {
-			table.UseMultiplePaths.Enabled = true
-		}
+
 		s.roaManager.SetAS(s.bgpConfig.Global.Config.As)
 		return nil
 	}, false)
