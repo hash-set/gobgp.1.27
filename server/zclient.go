@@ -560,7 +560,7 @@ func NlriIP(str string) string {
 }
 func (z *zebraClient) addGlobalVrfsToWatchEvent(ev WatchEvent) WatchEvent {
 	switch msg := ev.(type) {
-	case WatchEventUpdate:
+	case *WatchEventUpdate:
 		msg.GlobalVrfs = z.server.GetVrf()
 		return msg
 	default:
