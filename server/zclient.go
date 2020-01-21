@@ -558,11 +558,21 @@ func NlriIP(str string) string {
 	}
 	return ipstr
 }
+func (z *zebraClient) addGlobalVrfsToWatchEvent(ev WatchEvent) WatchEvent {
+	switch msg := ev.(type) {
+	case WatchEventUpdate:
+		msg.GlobalVrfs = z.server.GetVrf()
+		return msg
+	default:
+		return msg
+	}
+}
 
 func (z *zebraClient) loop() {
 	w := z.server.Watch([]WatchOption{
 		WatchBestPath(true),
 		WatchPostUpdate(true),
+		WatchPreProcess(z.addGlobalVrfsToWatchEvent),
 	}...)
 	z.watcher = w
 	defer w.Stop()
@@ -736,8 +746,7 @@ func (z *zebraClient) loop() {
 					for _, p := range msg.PathList {
 						switch p.GetRouteFamily() {
 						case bgp.RF_IPv4_VPN, bgp.RF_IPv6_VPN:
-							globalVrfs := z.server.GetVrf()
-							for _, vrf := range globalVrfs {
+							for _, vrf := range msg.GlobalVrfs {
 								if vrf.Id != 0 && table.CanImportToVrf(vrf, p) {
 									m[p.GetNlri().String()] = uint16(vrf.Id)
 								}
@@ -758,8 +767,7 @@ func (z *zebraClient) loop() {
 						vrfs = append(vrfs, v)
 					}
 					if len(vrfs) == 0 {
-						globalVrfs := z.server.GetVrf()
-						for _, vrf := range globalVrfs {
+						for _, vrf := range msg.GlobalVrfs {
 							if NlriRD(path.GetNlri().String()) == vrf.Rd.String() {
 								vrfs = append(vrfs, uint16(vrf.Id))
 							}

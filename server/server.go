@@ -2728,6 +2728,7 @@ type WatchEventUpdate struct {
 	PathList     []*table.Path
 	Neighbor     *config.Neighbor
 	Vrf          map[string]uint16
+	GlobalVrfs   []*table.Vrf
 }
 
 type WatchEventPeerState struct {
@@ -2786,6 +2787,7 @@ type watchOptions struct {
 	tableName      string
 	recvMessage    bool
 	sentMessage    bool
+	preProcess     func(WatchEvent) WatchEvent
 }
 
 type WatchOption func(*watchOptions)
@@ -2842,6 +2844,12 @@ func WatchMessage(isSent bool) WatchOption {
 		} else {
 			o.recvMessage = true
 		}
+	}
+}
+
+func WatchPreProcess(preProcess func(WatchEvent) WatchEvent) WatchOption {
+	return func(o *watchOptions) {
+		o.preProcess = preProcess
 	}
 }
 
@@ -2917,7 +2925,11 @@ func (w *Watcher) loop() {
 				close(w.realCh)
 				return
 			}
-			w.realCh <- ev.(WatchEvent)
+			event := ev.(WatchEvent)
+			if w.opts.preProcess != nil {
+				event = w.opts.preProcess(event)
+			}
+			w.realCh <- event
 		}
 	}
 }
