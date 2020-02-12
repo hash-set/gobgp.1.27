@@ -432,7 +432,6 @@ func filterpath(peer *Peer, path, old *table.Path) *table.Path {
 					return nil
 				}
 			}
-			ignore = false
 		}
 
 		if ignore {
