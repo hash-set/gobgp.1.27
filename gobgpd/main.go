@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"syscall"
 
 	"github.com/jessevdk/go-flags"
@@ -43,7 +44,7 @@ var version = "master"
 
 func main() {
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGUSR1)
 
 	var opts struct {
 		ConfigFile      string `short:"f" long:"config-file" description:"specifying a config file"`
@@ -332,8 +333,14 @@ func main() {
 			if updatePolicy {
 				bgpServer.SoftResetIn("", bgp.RouteFamily(0))
 			}
-		case <-sigCh:
-			bgpServer.Shutdown()
+		case sig := <-sigCh:
+			switch sig {
+			case syscall.SIGTERM:
+				bgpServer.Shutdown()
+			case syscall.SIGUSR1:
+				runtime.GC()
+				debug.FreeOSMemory()
+			}
 		}
 	}
 }
