@@ -19,7 +19,7 @@ const (
 	DEFAULT_CONNECT_RETRY             = 30
 )
 
-var ADDPATH_ALL = false
+var ADDPATH_ALL = true
 
 var forcedOverwrittenConfig = []string{
 	"neighbor.config.peer-as",
