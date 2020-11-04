@@ -1086,19 +1086,8 @@ func (d *Destination) Select(option ...DestinationSelectOption) *Destination {
 		if best {
 			if !mp {
 				paths = []*Path{paths[0]}
-			} else {
-				ps := make([]*Path, 0, len(paths))
-				var best *Path
-				for _, p := range paths {
-					if best == nil {
-						best = p
-						ps = append(ps, p)
-					} else if best.Compare(p) == 0 {
-						ps = append(ps, p)
-					}
-				}
-				paths = ps
 			}
+			// In case of multipath, we use all of knownPath as it is.
 		}
 	}
 	return NewDestination(d.nlri, 0, paths...)

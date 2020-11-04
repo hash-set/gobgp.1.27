@@ -506,8 +506,9 @@ func (z *zebraClient) SendPaths(paths []*table.Path, vrfs map[string]uint16) {
 		Vrf:      vrfs,
 	}
 	z.watcher.realCh <- &WatchEventBestPath{
-		PathList: paths,
-		Vrf:      vrfs,
+		PathList:      paths,
+		MultiPathList: [][]*table.Path{paths},
+		Vrf:           vrfs,
 	}
 }
 

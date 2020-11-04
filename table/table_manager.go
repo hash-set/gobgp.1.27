@@ -140,7 +140,7 @@ func (manager *TableManager) FetchExistingVrf(name string) (*Table, uint32) {
 		fmt.Printf("vrf %s does not exists\n", name)
 		return nil, 0
 	}
-	rib, err := tbl.Select(TableSelectOption{VRF: vrf, Best: true})
+	rib, err := tbl.Select(TableSelectOption{VRF: vrf, Best: true, MultiPath: true})
 	if err != nil {
 		fmt.Println("tbl.Select err", err)
 		return nil, 0
