@@ -362,3 +362,23 @@ func TestReplaceAS(t *testing.T) {
 	assert.Equal(t, list[2], uint32(10))
 	assert.Equal(t, list[3], uint32(2))
 }
+
+func TestMultiPath(t *testing.T) {
+	peerP := PathCreatePeer()
+	origin := bgp.NewPathAttributeOrigin(0)
+	aspathParam := []bgp.AsPathParamInterface{bgp.NewAs4PathParam(2, []uint32{64512, 64513, 1, 2})}
+	aspath := bgp.NewPathAttributeAsPath(aspathParam)
+	nlri := bgp.NewIPAddrPrefix(24, "30.30.30.0")
+	localPref100 := bgp.NewPathAttributeLocalPref(100)
+	localPref110 := bgp.NewPathAttributeLocalPref(110)
+	med100 := bgp.NewPathAttributeMultiExitDisc(100)
+	med110 := bgp.NewPathAttributeMultiExitDisc(110)
+	path100 := NewPath(peerP[0], nlri, false, []bgp.PathAttributeInterface{origin, aspath, localPref100}, time.Now(), false)
+	path110 := NewPath(peerP[0], nlri, false, []bgp.PathAttributeInterface{origin, aspath, localPref110}, time.Now(), false)
+	assert.Equal(t, path110.CompareMultiPath(path100), 10)
+
+	pathMed100 := NewPath(peerP[0], nlri, false, []bgp.PathAttributeInterface{origin, aspath, localPref100, med100}, time.Now(), false)
+	pathMed110 := NewPath(peerP[0], nlri, false, []bgp.PathAttributeInterface{origin, aspath, localPref100, med110}, time.Now(), false)
+
+	assert.Equal(t, pathMed110.CompareMultiPath(pathMed100), 0)
+}
