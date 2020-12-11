@@ -16,12 +16,14 @@
 package server
 
 import (
-	"github.com/osrg/gobgp/table"
-	"github.com/osrg/gobgp/zebra"
-	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/osrg/gobgp/packet/bgp"
+	"github.com/osrg/gobgp/table"
+	"github.com/osrg/gobgp/zebra"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_createPathFromIPRouteMessage(t *testing.T) {
@@ -108,4 +110,26 @@ func Test_createPathFromIPRouteMessage(t *testing.T) {
 	assert.Equal("2001:db8:0:f101::/64", pp.GetNlri().String())
 	assert.True(pp.IsFromExternal())
 	assert.True(pp.IsWithdraw)
+}
+
+func Test_isSelfRouteWithdraw(t *testing.T) {
+	assert := assert.New(t)
+	nlri := bgp.NewIPAddrPrefix(24, "30.30.30.0")
+	localPref := bgp.NewPathAttributeLocalPref(100)
+
+	peer1 := &table.PeerInfo{
+		AS:      65000,
+		Address: net.ParseIP("10.0.0.1"),
+	}
+	path1 := table.NewPath(peer1, nlri, false, []bgp.PathAttributeInterface{localPref}, time.Now(), false)
+	selfRouteWithdraw := isSelfRouteWithdraw([]*table.Path{path1})
+	assert.Equal(selfRouteWithdraw, false)
+
+	peer2 := &table.PeerInfo{
+		AS: 65000,
+	}
+	path2 := table.NewPath(peer2, nlri, false, []bgp.PathAttributeInterface{localPref}, time.Now(), false)
+
+	selfRouteWithdraw = isSelfRouteWithdraw([]*table.Path{path1, path2})
+	assert.Equal(selfRouteWithdraw, true)
 }

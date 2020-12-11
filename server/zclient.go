@@ -587,6 +587,20 @@ func logRouteUpdate(p *table.Path, selfRouteWithdraw bool, index int, vrf uint16
 	}
 }
 
+// We need to check all of Path for self route withdraw.
+func isSelfRouteWithdraw(dst []*table.Path) bool {
+	for _, path := range dst {
+		if path.IsLocal() {
+			log.WithFields(log.Fields{
+				"Topic": "Zebra",
+				"Event": "Route Update",
+			}).Infof("Make Local Path selection to withdraw event %s\n", path.GetNlri().String())
+			return true
+		}
+	}
+	return false
+}
+
 func (z *zebraClient) loop() {
 	w := z.server.Watch([]WatchOption{
 		WatchBestPath(true),
@@ -670,16 +684,9 @@ func (z *zebraClient) loop() {
 				if table.UseMultiplePaths.Enabled {
 					log.WithFields(log.Fields{
 						"Topic": "Zebra",
-					}).Debug("MultiplePathListLen %d, PathListLen %d", len(msg.MultiPathList), len(msg.PathList))
+					}).Debugf("MultiplePathListLen %d, PathListLen %d", len(msg.MultiPathList), len(msg.PathList))
 					for _, dst := range msg.MultiPathList {
-						// We need to check all of Path for self route withdraw.
-						selfRouteWithdraw := false
-						for _, path := range dst {
-							if path.IsLocal() {
-								fmt.Println("Make Local Path selection to withdraw event", path.GetNlri().String())
-								selfRouteWithdraw = true
-							}
-						}
+						selfRouteWithdraw := isSelfRouteWithdraw(dst)
 						fmt.Println("dst-len", len(dst), "msg.Vrf", msg.Vrf)
 						for pos, path := range dst {
 							if NlriPrefix(path.GetNlri().String()) == "0.0.0.0/0" {
@@ -706,7 +713,6 @@ func (z *zebraClient) loop() {
 								z.client.SendNexthopRegister(vrf, body, isWithdraw)
 							}
 						}
-
 					}
 				} else {
 					for _, path := range msg.PathList {
