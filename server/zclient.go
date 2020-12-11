@@ -580,7 +580,10 @@ func logRouteUpdate(p *table.Path, selfRouteWithdraw bool, index int, vrf uint16
 		if selfRouteWithdraw {
 			withdraw = "self-route withdraw"
 		}
-		fmt.Printf("vrf %d [%d] %s %s %s\n", vrf, index, pstr, nhop.String(), withdraw)
+		log.WithFields(log.Fields{
+			"Topic": "Zebra",
+			"Event": "Route Update",
+		}).Infof("vrf %d [%d] %s %s %s\n", vrf, index, pstr, nhop.String(), withdraw)
 	}
 }
 
