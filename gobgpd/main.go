@@ -42,6 +42,8 @@ import (
 
 var version = "master"
 
+const esiEnvNoAddPathAll = "/etc/esi/no_add_path_all"
+
 func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGUSR1)
@@ -130,6 +132,10 @@ func main() {
 			pretty.Println(c)
 		}
 		os.Exit(0)
+	}
+
+	if _, err := os.Stat(esiEnvNoAddPathAll); err == nil {
+		config.ADDPATH_ALL = false
 	}
 
 	log.Info("gobgpd started")

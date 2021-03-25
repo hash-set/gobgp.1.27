@@ -24,6 +24,7 @@ import (
 	farm "github.com/dgryski/go-farm"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/osrg/gobgp/config"
 	"github.com/osrg/gobgp/packet/bgp"
 )
 
@@ -140,7 +141,11 @@ func (manager *TableManager) FetchExistingVrf(name string) (*Table, uint32) {
 		fmt.Printf("vrf %s does not exists\n", name)
 		return nil, 0
 	}
-	rib, err := tbl.Select(TableSelectOption{VRF: vrf, Best: true, MultiPath: true})
+	tableSelectOption := TableSelectOption{VRF: vrf, Best: true}
+	if config.ADDPATH_ALL {
+		tableSelectOption = TableSelectOption{VRF: vrf, Best: true, MultiPath: true}
+	}
+	rib, err := tbl.Select(tableSelectOption)
 	if err != nil {
 		fmt.Println("tbl.Select err", err)
 		return nil, 0
