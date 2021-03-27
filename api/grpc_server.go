@@ -907,8 +907,8 @@ func (s *Server) AddBmp(ctx context.Context, arg *AddBmpRequest) (*AddBmpRespons
 		return nil, fmt.Errorf("invalid bmp route monitoring policy: %d", arg.Type)
 	}
 	return &AddBmpResponse{}, s.bgpServer.AddBmp(&config.BmpServerConfig{
-		Address: arg.Address,
-		Port:    arg.Port,
+		Address:               arg.Address,
+		Port:                  arg.Port,
 		RouteMonitoringPolicy: t,
 	})
 }
@@ -1020,7 +1020,7 @@ func (s *Server) EnableZebra(ctx context.Context, arg *EnableZebraRequest) (*Ena
 		}
 	}
 	return &EnableZebraResponse{}, s.bgpServer.StartZebraClient(&config.ZebraConfig{
-		Url: arg.Url,
+		Url:                       arg.Url,
 		RedistributeRouteTypeList: l,
 		Version:                   uint8(arg.Version),
 		NexthopTriggerEnable:      arg.NexthopTriggerEnable,
@@ -2509,6 +2509,12 @@ func (s *Server) StartServer(ctx context.Context, arg *StartServerRequest) (*Sta
 				AfiSafiName: name,
 			},
 		})
+	}
+	if g.UseMultiplePaths {
+		config.ADDPATH_ALL = false
+		g.UseMultiplePaths = false
+	} else {
+		config.ADDPATH_ALL = true
 	}
 	b := &config.BgpConfigSet{
 		Global: config.Global{
