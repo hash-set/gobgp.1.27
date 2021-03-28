@@ -580,7 +580,8 @@ func logRouteUpdate(p *table.Path, selfRouteWithdraw bool, index int, vrf uint16
 		if selfRouteWithdraw {
 			withdraw = "self-route withdraw"
 		}
-		fmt.Printf("vrf %d [%d] %s %s %s\n", vrf, index, pstr, nhop.String(), withdraw)
+		id := p.GetNlri().PathLocalIdentifier()
+		fmt.Printf("vrf %d [%d] %s %s id:%d %s\n", vrf, index, pstr, nhop.String(), id, withdraw)
 	}
 }
 

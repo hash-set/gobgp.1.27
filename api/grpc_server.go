@@ -2515,6 +2515,7 @@ func (s *Server) StartServer(ctx context.Context, arg *StartServerRequest) (*Sta
 		g.UseMultiplePaths = false
 	} else {
 		config.ADDPATH_ALL = true
+		g.UseMultiplePaths = true
 	}
 	b := &config.BgpConfigSet{
 		Global: config.Global{
