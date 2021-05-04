@@ -416,21 +416,21 @@ func filterpath(peer *Peer, path, old *table.Path) *table.Path {
 				ignore = false
 			}
 			if peer.isRouteReflectorClient() {
-				ignore = false
-			}
-			// RFC4456 8. Avoiding Routing Information Loops
-			// If the local CLUSTER_ID is found in the CLUSTER_LIST,
-			// the advertisement received SHOULD be ignored.
-			for _, clusterID := range path.GetClusterList() {
-				if clusterID.Equal(peer.fsm.peerInfo.RouteReflectorClusterID) {
-					log.WithFields(log.Fields{
-						"Topic":     "Peer",
-						"Key":       peer.ID(),
-						"ClusterID": clusterID,
-						"Data":      path,
-					}).Debug("cluster list path attribute has local cluster id, ignore")
-					return nil
+				// RFC4456 8. Avoiding Routing Information Loops
+				// If the local CLUSTER_ID is found in the CLUSTER_LIST,
+				// the advertisement received SHOULD be ignored.
+				for _, clusterID := range path.GetClusterList() {
+					if clusterID.Equal(peer.fsm.peerInfo.RouteReflectorClusterID) {
+						log.WithFields(log.Fields{
+							"Topic":     "Peer",
+							"Key":       peer.ID(),
+							"ClusterID": clusterID,
+							"Data":      path,
+						}).Debug("cluster list path attribute has local cluster id, ignore")
+						return nil
+					}
 				}
+				ignore = false
 			}
 		}
 
