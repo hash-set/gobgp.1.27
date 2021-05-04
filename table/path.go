@@ -322,7 +322,7 @@ func UpdatePathAttrs(global *config.Global, peer *config.Neighbor, info *PeerInf
 		log.WithFields(log.Fields{
 			"Topic": "Peer",
 			"Key":   peer.State.NeighborAddress,
-		}).Warnf("invalid peer type: %d", peer.State.PeerType)
+		}).Warnf("invalid peer type: %v", peer.State.PeerType)
 	}
 	return path
 }
@@ -1154,6 +1154,36 @@ func (lhs *Path) Compare(rhs *Path) int {
 	m1, _ := lhs.GetMed()
 	m2, _ := rhs.GetMed()
 	return int(m2 - m1)
+}
+
+func (lhs *Path) CompareMultiPath(rhs *Path) int {
+	if lhs.IsLocal() && !rhs.IsLocal() {
+		return 1
+	} else if !lhs.IsLocal() && rhs.IsLocal() {
+		return -1
+	}
+
+	if !lhs.IsIBGP() && rhs.IsIBGP() {
+		return 1
+	} else if lhs.IsIBGP() && !rhs.IsIBGP() {
+		return -1
+	}
+
+	lp1, _ := lhs.GetLocalPref()
+	lp2, _ := rhs.GetLocalPref()
+	if lp1 != lp2 {
+		return int(lp1 - lp2)
+	}
+
+	l1 := lhs.GetAsPathLen()
+	l2 := rhs.GetAsPathLen()
+	if l1 != l2 {
+		return int(l2 - l1)
+	}
+
+	o1, _ := lhs.GetOrigin()
+	o2, _ := rhs.GetOrigin()
+	return int(o2 - o1)
 }
 
 func (v *Vrf) ToGlobalPath(path *Path) error {

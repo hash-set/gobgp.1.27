@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/osrg/gobgp/config"
 	"github.com/osrg/gobgp/packet/bgp"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -2163,6 +2164,18 @@ func TestProcessBGPUpdate_Timestamp(t *testing.T) {
 	inList = adjRib.PathList([]bgp.RouteFamily{bgp.RF_IPv4_UC}, false)
 	assert.Equal(t, len(inList), 1)
 	assert.Equal(t, inList[0].GetTimestamp(), t3)
+}
+
+func TestNewTableSelectOption(t *testing.T) {
+	vrf := &Vrf{}
+
+	config.ADDPATH_ALL = true
+	tableSelectOption := NewTableSelectOption(vrf)
+	assert.Equal(t, tableSelectOption.MultiPath, true)
+
+	config.ADDPATH_ALL = false
+	tableSelectOption = NewTableSelectOption(vrf)
+	assert.Equal(t, tableSelectOption.MultiPath, false)
 }
 
 func update_fromR1() *bgp.BGPMessage {

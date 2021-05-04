@@ -383,7 +383,7 @@ func TestMultipath(t *testing.T) {
 	dd = d.Calculate(path4)
 	best, _, multi = dd.GetChanges(GLOBAL_RIB_NAME, 0, false)
 	assert.NotNil(t, best)
-	assert.Equal(t, len(multi), 1)
+	assert.Equal(t, len(multi), 2)
 	assert.Equal(t, len(d.GetKnownPathList(GLOBAL_RIB_NAME, 0)), 2)
 
 	nexthop = bgp.NewPathAttributeNextHop("192.168.150.2")
@@ -397,7 +397,7 @@ func TestMultipath(t *testing.T) {
 	path5 := ProcessMessage(updateMsg, peer2, time.Now())[0]
 	best, _, multi = d.Calculate(path5).GetChanges(GLOBAL_RIB_NAME, 0, false)
 	assert.NotNil(t, best)
-	assert.Equal(t, len(multi), 2)
+	assert.Equal(t, len(multi), 3)
 	assert.Equal(t, len(d.GetKnownPathList(GLOBAL_RIB_NAME, 0)), 3)
 
 	UseMultiplePaths.Enabled = false

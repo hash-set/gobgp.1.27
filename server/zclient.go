@@ -569,6 +569,22 @@ func (z *zebraClient) addGlobalVrfsToWatchEvent(ev WatchEvent) WatchEvent {
 	}
 }
 
+func logRouteUpdate(p *table.Path, selfRouteWithdraw bool, index int, vrf uint16) {
+	pstr := NlriIP(p.GetNlri().String())
+	if pstr != "" {
+		nhop := p.GetNexthop()
+		withdraw := ""
+		if p.IsWithdraw {
+			withdraw = "withdraw"
+		}
+		if selfRouteWithdraw {
+			withdraw = "self-route withdraw"
+		}
+		id := p.GetNlri().PathLocalIdentifier()
+		fmt.Printf("vrf %d [%d] %s %s id:%d %s\n", vrf, index, pstr, nhop.String(), id, withdraw)
+	}
+}
+
 func (z *zebraClient) loop() {
 	w := z.server.Watch([]WatchOption{
 		WatchBestPath(true),
@@ -654,41 +670,27 @@ func (z *zebraClient) loop() {
 						"Topic": "Zebra",
 					}).Debug("MultiplePathListLen %d, PathListLen %d", len(msg.MultiPathList), len(msg.PathList))
 					for _, dst := range msg.MultiPathList {
-						if len(dst) == 0 {
-							continue
-						}
-						path := dst[0]
+						// We need to check all of Path for self route withdraw.
 						selfRouteWithdraw := false
-						if NlriPrefix(path.GetNlri().String()) == "0.0.0.0/0" {
-							continue
+						for _, path := range dst {
+							if path.IsLocal() {
+								fmt.Println("Make Local Path selection to withdraw event", path.GetNlri().String())
+								selfRouteWithdraw = true
+							}
 						}
-						if path.IsLocal() {
-							fmt.Println("Make Local Path selection to withdraw event", path.GetNlri().String())
-							selfRouteWithdraw = true
-						}
-						var vrf uint16 = 0
 						fmt.Println("dst-len", len(dst), "msg.Vrf", msg.Vrf)
-						for index, p := range dst {
+						for pos, path := range dst {
+							if NlriPrefix(path.GetNlri().String()) == "0.0.0.0/0" {
+								continue
+							}
+							var vrf uint16 = 0
 							if msg.Vrf != nil && vrf == 0 {
-								if v, ok := msg.Vrf[p.GetNlri().String()]; ok {
+								if v, ok := msg.Vrf[path.GetNlri().String()]; ok {
 									vrf = v
 								}
 							}
-							pstr := NlriIP(p.GetNlri().String())
-							if pstr != "" {
-								nhop := p.GetNexthop()
-								withdraw := ""
-								if p.IsWithdraw {
-									withdraw = "withdraw"
-								}
-								if selfRouteWithdraw {
-									withdraw = "self-route withdraw"
-								}
-								fmt.Printf("vrf %d [%d] %s %s %s\n", vrf, index, pstr, nhop.String(), withdraw)
-							}
-						}
-						// Iterate each path.
-						for pos, path := range dst {
+							logRouteUpdate(path, selfRouteWithdraw, pos, vrf)
+
 							if body, isWithdraw := newIPRouteBody(pathList{path}, false, pos != 0); body != nil {
 								if selfRouteWithdraw {
 									isWithdraw = true
