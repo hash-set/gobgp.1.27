@@ -746,3 +746,20 @@ func TestBgpServerGetDefinedSetPropagateError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, err, fmt.Errorf("invalid defined-set type: %d", typ))
 }
+
+func TestSetMultiplePathConfig(t *testing.T) {
+	assert := assert.New(t)
+	s := NewBgpServer()
+	go s.Serve()
+	s.SetMultiplePathConfig(&config.UseMultiplePathsConfig{
+		Enabled: true,
+	})
+	c := s.GetServer()
+	assert.Equal(c.UseMultiplePaths.Config.Enabled, true)
+	s.SetMultiplePathConfig(&config.UseMultiplePathsConfig{
+		Enabled: false,
+	})
+	c = s.GetServer()
+	assert.Equal(c.UseMultiplePaths.Config.Enabled, false)
+	defer s.Stop()
+}

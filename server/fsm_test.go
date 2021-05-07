@@ -16,6 +16,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"net"
 	"strconv"
@@ -180,7 +181,7 @@ func TestFSMHandlerOpensent_HoldTimerExpired(t *testing.T) {
 	// set holdtime
 	p.fsm.opensentHoldTime = 2
 
-	state, _ := h.opensent()
+	state, _ := h.opensent(context.Background())
 
 	assert.Equal(bgp.BGP_FSM_IDLE, state)
 	lastMsg := m.sendBuf[len(m.sendBuf)-1]
@@ -205,7 +206,7 @@ func TestFSMHandlerOpenconfirm_HoldTimerExpired(t *testing.T) {
 
 	// set holdtime
 	p.fsm.pConf.Timers.State.NegotiatedHoldTime = 2
-	state, _ := h.openconfirm()
+	state, _ := h.openconfirm(context.Background())
 
 	assert.Equal(bgp.BGP_FSM_IDLE, state)
 	lastMsg := m.sendBuf[len(m.sendBuf)-1]
@@ -243,7 +244,7 @@ func TestFSMHandlerEstablish_HoldTimerExpired(t *testing.T) {
 	p.fsm.pConf.Timers.State.NegotiatedHoldTime = 2
 
 	go pushPackets()
-	state, _ := h.established()
+	state, _ := h.established(context.Background())
 	time.Sleep(time.Second * 1)
 	assert.Equal(bgp.BGP_FSM_IDLE, state)
 	m.mtx.Lock()
@@ -269,7 +270,7 @@ func TestFSMHandlerOpenconfirm_HoldtimeZero(t *testing.T) {
 	p.fsm.pConf.Timers.Config.KeepaliveInterval = 1
 	// set holdtime
 	p.fsm.pConf.Timers.State.NegotiatedHoldTime = 0
-	go h.openconfirm()
+	go h.openconfirm(context.Background())
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -291,7 +292,7 @@ func TestFSMHandlerEstablished_HoldtimeZero(t *testing.T) {
 	// set holdtime
 	p.fsm.pConf.Timers.State.NegotiatedHoldTime = 0
 
-	go h.established()
+	go h.established(context.Background())
 
 	time.Sleep(100 * time.Millisecond)
 
