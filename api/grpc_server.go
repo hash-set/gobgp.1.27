@@ -2529,6 +2529,15 @@ func (s *Server) StartServer(ctx context.Context, arg *StartServerRequest) (*Sta
 			},
 		},
 	}
+	if s.bgpServer.Active() == nil {
+		log.WithFields(log.Fields{
+			"Topic": "grpc",
+		}).Warnf("StartServer: already activated update MultiPath config: %v", g.UseMultiplePaths)
+		table.UseMultiplePaths = b.Global.UseMultiplePaths.Config
+		s.bgpServer.SetMultiplePathConfig(&b.Global.UseMultiplePaths.Config);
+		return &StartServerResponse{}, nil
+	}
+
 	return &StartServerResponse{}, s.bgpServer.Start(&b.Global)
 }
 

@@ -668,7 +668,7 @@ func (z *zebraClient) loop() {
 				if table.UseMultiplePaths.Enabled {
 					log.WithFields(log.Fields{
 						"Topic": "Zebra",
-					}).Debug("MultiplePathListLen %d, PathListLen %d", len(msg.MultiPathList), len(msg.PathList))
+					}).Debugf("MultiplePathListLen %d, PathListLen %d", len(msg.MultiPathList), len(msg.PathList))
 					for _, dst := range msg.MultiPathList {
 						// We need to check all of Path for self route withdraw.
 						selfRouteWithdraw := false
