@@ -1414,7 +1414,11 @@ func (h *FSMHandler) sendMessageloop(ctx context.Context, wg *sync.WaitGroup) er
 				"Data":  err,
 			}).Warn("failed to serialize")
 			fsm.bgpMessageStateUpdate(0, false)
-			return nil
+			// When serialization failed we has to close the connection and
+			// generate FSM error.
+			h.errorCh <- FSM_WRITE_FAILED
+			conn.Close()
+			return fmt.Errorf("failed to Serialize BGPUpdate")
 		}
 		if err := conn.SetWriteDeadline(time.Now().Add(time.Second * time.Duration(fsm.pConf.Timers.State.NegotiatedHoldTime))); err != nil {
 			h.errorCh <- FSM_WRITE_FAILED
