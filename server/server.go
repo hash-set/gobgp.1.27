@@ -153,7 +153,7 @@ func (server *BgpServer) Listeners(addr string) []*net.TCPListener {
 	return list
 }
 
-func (s *BgpServer) active() error {
+func (s *BgpServer) Active() error {
 	if s.bgpConfig.Global.Config.As == 0 {
 		return fmt.Errorf("bgp server hasn't started yet")
 	}
@@ -168,7 +168,7 @@ type mgmtOp struct {
 
 func (server *BgpServer) handleMGMTOp(op *mgmtOp) {
 	if op.checkActive {
-		if err := server.active(); err != nil {
+		if err := server.Active(); err != nil {
 			op.errCh <- err
 			return
 		}
@@ -2068,6 +2068,13 @@ func (s *BgpServer) GetServer() (c *config.Global) {
 	return c
 }
 
+func (s *BgpServer) SetMultiplePathConfig(config *config.UseMultiplePathsConfig) {
+	s.mgmtOperation(func() error {
+		s.bgpConfig.Global.UseMultiplePaths.Config = *config
+		return nil
+	}, false)
+}
+
 func (s *BgpServer) GetNeighbor(address string, getAdvertised bool) (l []*config.Neighbor) {
 	s.mgmtOperation(func() error {
 		l = make([]*config.Neighbor, 0, len(s.neighborMap))
@@ -3000,7 +3007,7 @@ func (s *BgpServer) Watch(opts ...WatchOption) (w *Watcher) {
 				w.notify(createWatchEventPeerState(peer))
 			}
 		}
-		if w.opts.initBest && s.active() == nil {
+		if w.opts.initBest && s.Active() == nil {
 			w.notify(&WatchEventBestPath{
 				PathList:      s.globalRib.GetBestPathList(table.GLOBAL_RIB_NAME, 0, nil),
 				MultiPathList: s.globalRib.GetBestMultiPathList(table.GLOBAL_RIB_NAME, nil),
@@ -3047,7 +3054,7 @@ func (s *BgpServer) Watch(opts ...WatchOption) (w *Watcher) {
 				}
 			}
 		}
-		if w.opts.initPostUpdate && s.active() == nil {
+		if w.opts.initPostUpdate && s.Active() == nil {
 			for _, rf := range s.globalRib.GetRFlist() {
 				if len(s.globalRib.Tables[rf].GetDestinations()) == 0 {
 					continue
