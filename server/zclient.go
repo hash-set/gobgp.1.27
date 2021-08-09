@@ -581,7 +581,9 @@ func logRouteUpdate(p *table.Path, selfRouteWithdraw bool, index int, vrf uint16
 			withdraw = "self-route withdraw"
 		}
 		id := p.GetNlri().PathLocalIdentifier()
-		fmt.Printf("vrf %d [%d] %s %s id:%d %s\n", vrf, index, pstr, nhop.String(), id, withdraw)
+		log.WithFields(log.Fields{
+			"Topic": "Zebra",
+		}).Debug("vrf %d [%d] %s %s id:%d %s", vrf, index, pstr, nhop.String(), id, withdraw)
 	}
 }
 
@@ -674,11 +676,15 @@ func (z *zebraClient) loop() {
 						selfRouteWithdraw := false
 						for _, path := range dst {
 							if path.IsLocal() {
-								fmt.Println("Make Local Path selection to withdraw event", path.GetNlri().String())
+								log.WithFields(log.Fields{
+									"Topic": "Zebra",
+								}).Debug("Make Local Path selection to withdraw event %s", path.GetNlri().String())
 								selfRouteWithdraw = true
 							}
 						}
-						fmt.Println("dst-len", len(dst), "msg.Vrf", msg.Vrf)
+						log.WithFields(log.Fields{
+							"Topic": "Zebra",
+						}).Debug("dst-len %d msg.Vrf %v", len(dst), msg.Vrf)
 						for pos, path := range dst {
 							if NlriPrefix(path.GetNlri().String()) == "0.0.0.0/0" {
 								continue
@@ -713,7 +719,9 @@ func (z *zebraClient) loop() {
 							continue
 						}
 						if path.IsLocal() {
-							fmt.Println("Make Local Path selection to withdraw event", path.GetNlri().String())
+							log.WithFields(log.Fields{
+								"Topic": "Zebra",
+							}).Debug("Make Local Path selection to withdraw event %s", path.GetNlri().String())
 							selfRouteWithdraw = true
 						}
 						vrfs := []uint16{}
@@ -762,7 +770,9 @@ func (z *zebraClient) loop() {
 						continue
 					}
 					if path.IsLocal() {
-						fmt.Println("Skipping Local Path", path.GetNlri().String())
+						log.WithFields(log.Fields{
+							"Topic": "Zebra",
+						}).Debug("Skipping Local Path %s", path.GetNlri().String())
 						continue
 					}
 					vrfs := []uint16{}
