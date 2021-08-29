@@ -382,3 +382,9 @@ func TestMultiPath(t *testing.T) {
 
 	assert.Equal(t, pathMed110.CompareMultiPath(pathMed100), 0)
 }
+
+func TestCommunityHasValue(t *testing.T) {
+	com := bgp.NewPathAttributeCommunities([]uint32{1, 2, 3})
+	assert.Equal(t, CommunityHasValue(com.Value, 1), true)
+	assert.Equal(t, CommunityHasValue(com.Value, 4), false)
+}
