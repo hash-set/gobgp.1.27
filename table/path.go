@@ -884,6 +884,15 @@ func (path *Path) GetCommunities() []uint32 {
 	return communityList
 }
 
+func CommunityHasValue(communities []uint32, val uint32) bool {
+	for _, com := range communities {
+		if com == val {
+			return true
+		}
+	}
+	return false
+}
+
 // SetCommunities adds or replaces communities with new ones.
 // If the length of communities is 0 and doReplace is true, it clears communities.
 func (path *Path) SetCommunities(communities []uint32, doReplace bool) {
@@ -902,7 +911,11 @@ func (path *Path) SetCommunities(communities []uint32, doReplace bool) {
 			newList = append(newList, communities...)
 		} else {
 			newList = append(newList, c.Value...)
-			newList = append(newList, communities...)
+			for _, val := range communities {
+				if !CommunityHasValue(c.Value, val) {
+					newList = append(newList, val)
+				}
+			}
 		}
 	} else {
 		newList = append(newList, communities...)

@@ -301,6 +301,9 @@ func (peer *Peer) markLLGRStale(fs []bgp.RouteFamily) []*table.Path {
 			}
 		}
 		if doStale {
+			// p.SetCommunities had a bug. Even if COMMUNITY_LLGR_STALE exists,
+			// it add same community value. Now bug is fixed in
+			// p.SetCommunities().
 			p.SetCommunities([]uint32{bgp.COMMUNITY_LLGR_STALE}, false)
 			p = p.Clone(false)
 		}
