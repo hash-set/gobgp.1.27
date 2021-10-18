@@ -29,10 +29,9 @@ import (
 )
 
 const (
-	FLOP_THRESHOLD = time.Second * 30
+	FLOP_THRESHOLD    = time.Second * 30
+	MIN_CONNECT_RETRY = 10
 )
-
-var MIN_CONNECT_RETRY = 10
 
 type PeerGroup struct {
 	Conf             *config.PeerGroup
@@ -514,42 +513,38 @@ func (peer *Peer) DropAll(rfList []bgp.RouteFamily) {
 func (peer *Peer) stopFSM() error {
 	failed := false
 	addr := peer.fsm.pConf.State.NeighborAddress
-	state := peer.fsm.state
 	t1 := time.AfterFunc(time.Minute*5, func() {
 		log.WithFields(log.Fields{
 			"Topic": "Peer",
 		}).Warnf("Failed to free the fsm.h.t for %s", addr)
 		failed = true
 	})
-	// peer.fsm.h.t.Kill(nil)
-	// peer.fsm.h.t.Wait()
-	peer.fsm.h.ctxCancel()
-	peer.fsm.h.wg.Wait()
+	peer.fsm.h.t.Kill(nil)
+	peer.fsm.h.t.Wait()
 	t1.Stop()
 	if !failed {
 		log.WithFields(log.Fields{
 			"Topic": "Peer",
 			"Key":   addr,
-			"State": state,
 		}).Debug("freed fsm.h.t")
 		cleanInfiniteChannel(peer.outgoing)
 	}
-	// failed = false
-	// t2 := time.AfterFunc(time.Minute*5, func() {
-	// 	log.WithFields(log.Fields{
-	// 		"Topic": "Peer",
-	// 	}).Warnf("Failed to free the fsm.t for %s", addr)
-	// 	failed = true
-	// })
-	// peer.fsm.t.Kill(nil)
-	// peer.fsm.t.Wait()
-	// t2.Stop()
-	// if !failed {
-	// 	log.WithFields(log.Fields{
-	// 		"Topic": "Peer",
-	// 		"Key":   addr,
-	// 	}).Debug("freed fsm.t")
-	// 	return nil
-	// }
+	failed = false
+	t2 := time.AfterFunc(time.Minute*5, func() {
+		log.WithFields(log.Fields{
+			"Topic": "Peer",
+		}).Warnf("Failed to free the fsm.t for %s", addr)
+		failed = true
+	})
+	peer.fsm.t.Kill(nil)
+	peer.fsm.t.Wait()
+	t2.Stop()
+	if !failed {
+		log.WithFields(log.Fields{
+			"Topic": "Peer",
+			"Key":   addr,
+		}).Debug("freed fsm.t")
+		return nil
+	}
 	return fmt.Errorf("Failed to free FSM for %s", addr)
 }
