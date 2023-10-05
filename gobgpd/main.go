@@ -63,6 +63,7 @@ func main() {
 		TLSCertFile     string `long:"tls-cert-file" description:"The TLS cert file"`
 		TLSKeyFile      string `long:"tls-key-file" description:"The TLS key file"`
 		Version         bool   `long:"version" description:"show version number"`
+		LocalAddr       string `short:"a" long:"local-addr" description:"Local address to be bind"`
 	}
 	_, err := flags.Parse(&opts)
 	if err != nil {
@@ -119,6 +120,10 @@ func main() {
 		}
 	} else {
 		log.SetFormatter(&log.JSONFormatter{})
+	}
+
+	if opts.LocalAddr != "" {
+		server.LocalAddr = opts.LocalAddr
 	}
 
 	configCh := make(chan *config.BgpConfigSet)

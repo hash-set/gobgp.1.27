@@ -12,6 +12,7 @@
 // implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//go:build linux
 // +build linux
 
 package server
@@ -37,6 +38,8 @@ type tcpmd5sig struct {
 	pad2      uint32
 	key       [80]byte
 }
+
+var LocalAddr string
 
 func buildTcpMD5Sig(address string, key string) (tcpmd5sig, error) {
 	t := tcpmd5sig{}
@@ -141,7 +144,11 @@ func (d *TCPDialer) DialTCP(addr string, port int) (*net.TCPConn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid remote address: %s", err)
 	}
-	laddr, err := net.ResolveTCPAddr("tcp", d.LocalAddr.String())
+	laddrStr := d.LocalAddr.String()
+	if LocalAddr != "" {
+		laddrStr = LocalAddr + ":179"
+	}
+	laddr, err := net.ResolveTCPAddr("tcp", laddrStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid local address: %s", err)
 	}
